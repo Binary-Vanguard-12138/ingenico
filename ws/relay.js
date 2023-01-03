@@ -1,5 +1,4 @@
 const { WebSocketServer } = require("ws");
-const protobuf = require("protobufjs");
 const proto = require("./ecr-json-api");
 
 const wss = new WebSocketServer({ port: 8086 });
@@ -8,7 +7,7 @@ const messageInType = proto.lookupType("EcrToTerminalMessage");
 const messageOutType = proto.lookupType("TerminalToEcrMessage");
 
 let wsServer;
-const awsClient = [];
+let wsClient;
 
 wss.on("connection", function connection(ws, req) {
     if (req.url?.includes("server")) {
@@ -17,7 +16,7 @@ wss.on("connection", function connection(ws, req) {
         ws.on("message", function message(data) {
             const message = messageInType.decode(new Uint8Array(data));
             console.info("From business app", JSON.stringify(message));
-            awsClient[0].send(data);
+            wsClient.send(data);
         });
     } else {
         console.log("New client connection");
@@ -26,7 +25,7 @@ wss.on("connection", function connection(ws, req) {
             ws.close();
             return;
         }
-        awsClient.push(ws);
+        wsClient = ws;
         wsServer.send(`[websocket-message-broker] Client connected`);
         ws.on("message", function message(data) {
             const message = messageOutType.decode(new Uint8Array(data));
